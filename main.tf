@@ -1,14 +1,4 @@
-terraform {
-  required_providers {
-    aci = {
-      source  = "CiscoDevNet/aci"
-      version = ">= 2.1.0"
-    }
-    utils = {
-      source  = "netascode/utils"
-      version = ">= 0.1.2"
-    }
-  }
+variable "apic_password" {
 }
 
 provider "aci" {
@@ -19,19 +9,18 @@ provider "aci" {
   retries  = 4
 }
 
-locals {
-  model = yamldecode(data.utils_yaml_merge.model.output)
-}
+module "aci" {
+  source = "github.com/netascode/terraform-aci-nac-aci.git?ref=main"
 
-data "utils_yaml_merge" "model" {
-  input = concat([for file in fileset(path.module, "data/*.yaml") : file(file)], [file("${path.module}/defaults/defaults.yaml")])
-}
+  yaml_directories = ["./data" ]
+  write_default_values_file = "./defaults/defaults.yaml"
 
-module "tenant" {
-  source  = "netascode/nac-tenant/aci"
-  version = "0.3.1"
-
-  for_each    = toset([for tenant in lookup(local.model.apic, "tenants", {}) : tenant.name])
-  model       = local.model
-  tenant_name = each.value
+  manage_access_policies    = true
+  manage_fabric_policies    = true
+  manage_pod_policies       = true
+  manage_node_policies      = true
+  manage_interface_policies = true
+  manage_tenants            = true
+    
 }
+ 
